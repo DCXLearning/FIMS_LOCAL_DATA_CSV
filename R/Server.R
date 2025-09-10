@@ -1173,200 +1173,200 @@ server <- function(input, output, session) {
   
 
   
-  observeEvent(input$updateFileButton, {
-    tryCatch({
-      # Prep data
-      marine_df_detail  <- as.data.frame(filtered_data_detail(),        stringsAsFactors = FALSE,  check.names = FALSE)
-      
-      marine_df  <- as.data.frame(filtered_data(),        stringsAsFactors = FALSE,  check.names = FALSE)
-      aquac_df   <- as.data.frame(aquaculture_summary(),  stringsAsFactors = FALSE,  check.names = FALSE)
-      #aquac_df_detail   <- as.data.frame(aquaculture_summary_detail(),  stringsAsFactors = FALSE)
-      fishing_df <- as.data.frame(fishing_products(),     stringsAsFactors = FALSE)
-      rice_field_df <- as.data.frame(fishing_products_rice_field(), stringsAsFactors = FALSE)
-      fishery_domain_df <- as.data.frame(fishing_products_fishery_domain(), stringsAsFactors = FALSE)
-      fishing_dai_df <- as.data.frame(fishing_products_dai(), stringsAsFactors = FALSE)
-      law_enforcement_df <- as.data.frame(law_enforcement(), stringsAsFactors = FALSE, check.names = FALSE)
-      # aquaculture_pond_df <- as.data.frame(aquaculture_pond(), stringsAsFactors = FALSE)
-      # Get the data.frame from your reactive (keep original column names with spaces)
-      aquaculture_pond_df <- as.data.frame(aquaculture_pond(), stringsAsFactors = FALSE, check.names = FALSE)
-      aquac_df_detail <- as.data.frame(aquaculture_summary_detail(),
-                                       stringsAsFactors = FALSE, check.names = FALSE)
-      
-      # marine_df_detail <- as.data.frame(
-      #   filtered_data_detail(),
-      #   stringsAsFactors = FALSE,
-      #   check.names = FALSE     # <- IMPORTANT
-      # )
-      
-      # Make everything character (and format dates nicely)
-      to_chr <- function(df) {
-        df[] <- lapply(df, function(x) {
-          if (inherits(x, "Date"))   format(x, "%Y-%m-%d")
-          else if (inherits(x, "POSIXt")) format(x, "%Y-%m-%d %H:%M:%S")
-          else as.character(x)
-        })
-        df
-      }
-      marine_df  <- to_chr(marine_df)
-      aquac_df   <- to_chr(aquac_df)
-      fishing_df <- to_chr(fishing_df)
-      rice_field_df <- to_chr(rice_field_df)
-      fishery_domain_df <- to_chr(fishery_domain_df)
-      fishing_dai_df <- to_chr(fishing_dai_df)
-      law_enforcement_df <- to_chr(law_enforcement_df)
-      aquaculture_pond_df<- to_chr(aquaculture_pond_df)
-      aquac_df_detail   <- to_chr(aquac_df_detail)
-      marine_df_detail <- to_chr(marine_df_detail)
-      # aquac_df_detail <- aquaculture_summary_detail()
-      # marine_df_detail <- filtered_data_detail()
-      
-      # Paths
-      template_path <- "Report/Fish_Annual_Tamplate.xlsx"
-      
-      timestamp <- format(as.POSIXct(Sys.time(), tz = "Asia/Phnom_Penh"), "%Y-%m-%d_%H-%M")
-      
-      # ensure folder exists
-      dir.create("Report", showWarnings = FALSE, recursive = TRUE)
-      
-      # build the filename
-      out_file <- file.path("Report", sprintf("Fish_Catch_Report_%s.xlsx", timestamp))
-      
-      # Check if the template file exists before proceeding.
-      if (!file.exists(template_path)) {
-        stop("Template not found: ", template_path)
-      }
-      
-      # Attempt to copy the template to the new output file.
-      if (!file.copy(template_path, out_file, overwrite = TRUE)) {
-        stop("Failed to copy template")
-      }
-      
-      # Load & write
-      wb <- openxlsx2::wb_load(out_file)
-      
-      wb$add_data(sheet = "T06Detail", x = marine_df_detail,  startRow = 8, startCol = 2, colNames = TRUE)
-      wb$add_data(sheet = "T06_ប្រភេទត្រីសមុទ្រ", x = marine_df,  startRow = 8, startCol = 2, colNames = TRUE)
-      wb$add_data(sheet = "T07_ផលវារីវប្បកម្ម",   x = aquac_df,   startRow = 7, startCol = 2, colNames =TRUE)
-      wb$add_data(sheet = "T07Detail",   x = aquac_df_detail,   startRow = 7, startCol = 2, colNames = TRUE)
-      
-      
-      ####  ផលនេសាទសមុទ្រ
-      wb$add_data(
-        sheet     = "T05_ផលនេសាទសមុទ្រ",
-        x         = fishing_df[, 1:2],  # first two columns
-        startRow  = 8,
-        startCol  = 2,                   # B
-        colNames  = FALSE
-      )
-      
-      # Write to column E (skip D)
-      wb$add_data(
-        sheet     = "T05_ផលនេសាទសមុទ្រ",
-        x         = fishing_df[, 3, drop = FALSE],  # third column only
-        startRow  = 8,
-        startCol  = 5,                   # E
-        colNames  = FALSE
-      )
-      
-      #### ផលក្នុងវាលស្រែ
-      wb$add_data(
-        sheet     = "T04_ផលក្នុងវាលស្រែ",
-        x         = rice_field_df[, 1:2],  # first two columns
-        startRow  = 10,
-        startCol  = 2,                   # B
-        colNames  = FALSE
-      )
-      
-      # Write to column E (skip D)
-      wb$add_data(
-        sheet     = "T04_ផលក្នុងវាលស្រែ",
-        x         = rice_field_df[, 3, drop = FALSE],  # third column only
-        startRow  = 10,
-        startCol  = 5,                   # E
-        colNames  = FALSE
-      )
-      
-      
-      #### ផលក្នុងដែននេសាទ
-      wb$add_data(
-        sheet     = "T03_ផលក្នុងដែននេសាទ",
-        x         = rice_field_df[, 1:2],  # first two columns
-        startRow  = 9,
-        startCol  = 2,                   # B
-        colNames  = FALSE
-      )
-      
-      # Write to column E (skip D)
-      wb$add_data(
-        sheet     = "T03_ផលក្នុងដែននេសាទ",
-        x         = rice_field_df[, 3, drop = FALSE],  # third column only
-        startRow  = 9,
-        startCol  = 5,                   # E
-        colNames  = FALSE
-      )
-      
-      
-      #### ផលឧបករណ៍ដាយ
-      wb$add_data(
-        sheet     = "T02_ផលឧបករណ៍ដាយ",
-        x         = fishing_dai_df[, 1:2],  # first two columns
-        startRow  = 11,
-        startCol  = 2,                   # B
-        colNames  = FALSE
-      )
-      
-      # Write to column E (skip D)
-      wb$add_data(
-        sheet     = "T02_ផលឧបករណ៍ដាយ",
-        x         = fishing_dai_df[, 3, drop = FALSE],  # third column only
-        startRow  = 11,
-        startCol  = 5,                   # E
-        colNames  = FALSE
-      )
-      
-      #### បទល្មើស
-      wb$add_data(
-        sheet     = "T08_បទល្មើស",
-        x         = law_enforcement_df[, 1:4],  # first two columns
-        startRow  = 6,
-        startCol  = 2,                   # c
-        colNames  = TRUE
-      )
-
-
-      # Make sure the needed columns exist (fill with 0 if missing)
-      for (nm in c("province_kh", "ponds", "batches", "plastic soung")) {
-        if (!nm %in% names(aquaculture_pond_df)) aquaculture_pond_df[[nm]] <- 0L
-      }
-      
-      # Write to the sheet "ស្រះ បែ ស៊ង"
-      # B (2) = province, E (5) = ponds, I (9) = batches, M (13) = plastic soung
-      wb$add_data(sheet = "T10_ស្រះ បែ ស៊ង",
-                  x = aquaculture_pond_df[, "province_kh", drop = FALSE],
-                  startRow = 8, startCol = 2, colNames = FALSE)
-      
-      wb$add_data(sheet = "T10_ស្រះ បែ ស៊ង",
-                  x = aquaculture_pond_df[, "ponds", drop = FALSE],
-                  startRow = 8, startCol = 5, colNames = FALSE)
-      
-      wb$add_data(sheet = "T10_ស្រះ បែ ស៊ង",
-                  x = aquaculture_pond_df[, "batches", drop = FALSE],
-                  startRow = 8, startCol = 9, colNames = FALSE)
-      
-      wb$add_data(sheet = "T10_ស្រះ បែ ស៊ង",
-                  x = aquaculture_pond_df[, "plastic soung", drop = FALSE],
-                  startRow = 8, startCol = 13, colNames = FALSE)
-      
-      
-      
-      openxlsx2::wb_save(wb, out_file, overwrite = TRUE)
-      
-      showNotification(paste("Report exported successfully:", out_file), type = "message")
-      
-    }, error = function(e) {
-      showNotification(paste("Error exporting report:", e$message), type = "error")
-    })
-  })
+  # observeEvent(input$updateFileButton, {
+  #   tryCatch({
+  #     # Prep data
+  #     marine_df_detail  <- as.data.frame(filtered_data_detail(),        stringsAsFactors = FALSE,  check.names = FALSE)
+  #     
+  #     marine_df  <- as.data.frame(filtered_data(),        stringsAsFactors = FALSE,  check.names = FALSE)
+  #     aquac_df   <- as.data.frame(aquaculture_summary(),  stringsAsFactors = FALSE,  check.names = FALSE)
+  #     #aquac_df_detail   <- as.data.frame(aquaculture_summary_detail(),  stringsAsFactors = FALSE)
+  #     fishing_df <- as.data.frame(fishing_products(),     stringsAsFactors = FALSE)
+  #     rice_field_df <- as.data.frame(fishing_products_rice_field(), stringsAsFactors = FALSE)
+  #     fishery_domain_df <- as.data.frame(fishing_products_fishery_domain(), stringsAsFactors = FALSE)
+  #     fishing_dai_df <- as.data.frame(fishing_products_dai(), stringsAsFactors = FALSE)
+  #     law_enforcement_df <- as.data.frame(law_enforcement(), stringsAsFactors = FALSE, check.names = FALSE)
+  #     # aquaculture_pond_df <- as.data.frame(aquaculture_pond(), stringsAsFactors = FALSE)
+  #     # Get the data.frame from your reactive (keep original column names with spaces)
+  #     aquaculture_pond_df <- as.data.frame(aquaculture_pond(), stringsAsFactors = FALSE, check.names = FALSE)
+  #     aquac_df_detail <- as.data.frame(aquaculture_summary_detail(),
+  #                                      stringsAsFactors = FALSE, check.names = FALSE)
+  #     
+  #     # marine_df_detail <- as.data.frame(
+  #     #   filtered_data_detail(),
+  #     #   stringsAsFactors = FALSE,
+  #     #   check.names = FALSE     # <- IMPORTANT
+  #     # )
+  #     
+  #     # Make everything character (and format dates nicely)
+  #     to_chr <- function(df) {
+  #       df[] <- lapply(df, function(x) {
+  #         if (inherits(x, "Date"))   format(x, "%Y-%m-%d")
+  #         else if (inherits(x, "POSIXt")) format(x, "%Y-%m-%d %H:%M:%S")
+  #         else as.character(x)
+  #       })
+  #       df
+  #     }
+  #     marine_df  <- to_chr(marine_df)
+  #     aquac_df   <- to_chr(aquac_df)
+  #     fishing_df <- to_chr(fishing_df)
+  #     rice_field_df <- to_chr(rice_field_df)
+  #     fishery_domain_df <- to_chr(fishery_domain_df)
+  #     fishing_dai_df <- to_chr(fishing_dai_df)
+  #     law_enforcement_df <- to_chr(law_enforcement_df)
+  #     aquaculture_pond_df<- to_chr(aquaculture_pond_df)
+  #     aquac_df_detail   <- to_chr(aquac_df_detail)
+  #     marine_df_detail <- to_chr(marine_df_detail)
+  #     # aquac_df_detail <- aquaculture_summary_detail()
+  #     # marine_df_detail <- filtered_data_detail()
+  #     
+  #     # Paths
+  #     template_path <- "Report/Fish_Annual_Tamplate.xlsx"
+  #     
+  #     timestamp <- format(as.POSIXct(Sys.time(), tz = "Asia/Phnom_Penh"), "%Y-%m-%d_%H-%M")
+  #     
+  #     # ensure folder exists
+  #     dir.create("Report", showWarnings = FALSE, recursive = TRUE)
+  #     
+  #     # build the filename
+  #     out_file <- file.path("Report", sprintf("Fish_Catch_Report_%s.xlsx", timestamp))
+  #     
+  #     # Check if the template file exists before proceeding.
+  #     if (!file.exists(template_path)) {
+  #       stop("Template not found: ", template_path)
+  #     }
+  #     
+  #     # Attempt to copy the template to the new output file.
+  #     if (!file.copy(template_path, out_file, overwrite = TRUE)) {
+  #       stop("Failed to copy template")
+  #     }
+  #     
+  #     # Load & write
+  #     wb <- openxlsx2::wb_load(out_file)
+  #     
+  #     wb$add_data(sheet = "T06Detail", x = marine_df_detail,  startRow = 8, startCol = 2, colNames = TRUE)
+  #     wb$add_data(sheet = "T06_ប្រភេទត្រីសមុទ្រ", x = marine_df,  startRow = 8, startCol = 2, colNames = TRUE)
+  #     wb$add_data(sheet = "T07_ផលវារីវប្បកម្ម",   x = aquac_df,   startRow = 7, startCol = 2, colNames =TRUE)
+  #     wb$add_data(sheet = "T07Detail",   x = aquac_df_detail,   startRow = 7, startCol = 2, colNames = TRUE)
+  #     
+  #     
+  #     ####  ផលនេសាទសមុទ្រ
+  #     wb$add_data(
+  #       sheet     = "T05_ផលនេសាទសមុទ្រ",
+  #       x         = fishing_df[, 1:2],  # first two columns
+  #       startRow  = 8,
+  #       startCol  = 2,                   # B
+  #       colNames  = FALSE
+  #     )
+  #     
+  #     # Write to column E (skip D)
+  #     wb$add_data(
+  #       sheet     = "T05_ផលនេសាទសមុទ្រ",
+  #       x         = fishing_df[, 3, drop = FALSE],  # third column only
+  #       startRow  = 8,
+  #       startCol  = 5,                   # E
+  #       colNames  = FALSE
+  #     )
+  #     
+  #     #### ផលក្នុងវាលស្រែ
+  #     wb$add_data(
+  #       sheet     = "T04_ផលក្នុងវាលស្រែ",
+  #       x         = rice_field_df[, 1:2],  # first two columns
+  #       startRow  = 10,
+  #       startCol  = 2,                   # B
+  #       colNames  = FALSE
+  #     )
+  #     
+  #     # Write to column E (skip D)
+  #     wb$add_data(
+  #       sheet     = "T04_ផលក្នុងវាលស្រែ",
+  #       x         = rice_field_df[, 3, drop = FALSE],  # third column only
+  #       startRow  = 10,
+  #       startCol  = 5,                   # E
+  #       colNames  = FALSE
+  #     )
+  #     
+  #     
+  #     #### ផលក្នុងដែននេសាទ
+  #     wb$add_data(
+  #       sheet     = "T03_ផលក្នុងដែននេសាទ",
+  #       x         = rice_field_df[, 1:2],  # first two columns
+  #       startRow  = 9,
+  #       startCol  = 2,                   # B
+  #       colNames  = FALSE
+  #     )
+  #     
+  #     # Write to column E (skip D)
+  #     wb$add_data(
+  #       sheet     = "T03_ផលក្នុងដែននេសាទ",
+  #       x         = rice_field_df[, 3, drop = FALSE],  # third column only
+  #       startRow  = 9,
+  #       startCol  = 5,                   # E
+  #       colNames  = FALSE
+  #     )
+  #     
+  #     
+  #     #### ផលឧបករណ៍ដាយ
+  #     wb$add_data(
+  #       sheet     = "T02_ផលឧបករណ៍ដាយ",
+  #       x         = fishing_dai_df[, 1:2],  # first two columns
+  #       startRow  = 11,
+  #       startCol  = 2,                   # B
+  #       colNames  = FALSE
+  #     )
+  #     
+  #     # Write to column E (skip D)
+  #     wb$add_data(
+  #       sheet     = "T02_ផលឧបករណ៍ដាយ",
+  #       x         = fishing_dai_df[, 3, drop = FALSE],  # third column only
+  #       startRow  = 11,
+  #       startCol  = 5,                   # E
+  #       colNames  = FALSE
+  #     )
+  #     
+  #     #### បទល្មើស
+  #     wb$add_data(
+  #       sheet     = "T08_បទល្មើស",
+  #       x         = law_enforcement_df[, 1:4],  # first two columns
+  #       startRow  = 6,
+  #       startCol  = 2,                   # c
+  #       colNames  = TRUE
+  #     )
+  # 
+  # 
+  #     # Make sure the needed columns exist (fill with 0 if missing)
+  #     for (nm in c("province_kh", "ponds", "batches", "plastic soung")) {
+  #       if (!nm %in% names(aquaculture_pond_df)) aquaculture_pond_df[[nm]] <- 0L
+  #     }
+  #     
+  #     # Write to the sheet "ស្រះ បែ ស៊ង"
+  #     # B (2) = province, E (5) = ponds, I (9) = batches, M (13) = plastic soung
+  #     wb$add_data(sheet = "T10_ស្រះ បែ ស៊ង",
+  #                 x = aquaculture_pond_df[, "province_kh", drop = FALSE],
+  #                 startRow = 8, startCol = 2, colNames = FALSE)
+  #     
+  #     wb$add_data(sheet = "T10_ស្រះ បែ ស៊ង",
+  #                 x = aquaculture_pond_df[, "ponds", drop = FALSE],
+  #                 startRow = 8, startCol = 5, colNames = FALSE)
+  #     
+  #     wb$add_data(sheet = "T10_ស្រះ បែ ស៊ង",
+  #                 x = aquaculture_pond_df[, "batches", drop = FALSE],
+  #                 startRow = 8, startCol = 9, colNames = FALSE)
+  #     
+  #     wb$add_data(sheet = "T10_ស្រះ បែ ស៊ង",
+  #                 x = aquaculture_pond_df[, "plastic soung", drop = FALSE],
+  #                 startRow = 8, startCol = 13, colNames = FALSE)
+  #     
+  #     
+  #     
+  #     openxlsx2::wb_save(wb, out_file, overwrite = TRUE)
+  #     
+  #     showNotification(paste("Report exported successfully:", out_file), type = "message")
+  #     
+  #   }, error = function(e) {
+  #     showNotification(paste("Error exporting report:", e$message), type = "error")
+  #   })
+  # })
   
   # When Province Group changes, update Province and Area lists accordingly
   observeEvent(input$Province_Group, {
@@ -1498,6 +1498,95 @@ server <- function(input, output, session) {
     })
   })
   
+  # Download handler: builds the workbook and sends it to the browser
+  output$downloadReport <- downloadHandler(
+    filename = function() {
+      # no ":" in filenames; use Phnom Penh time
+      ts <- format(as.POSIXct(Sys.time(), tz = "Asia/Phnom_Penh"), "%Y-%m-%d_%H-%M")
+      sprintf("Fish_Catch_Report_%s.xlsx", ts)
+    },
+    content = function(file) {
+      # ------- PREP DATA (same as your observeEvent) -------
+      to_chr <- function(df) {
+        df[] <- lapply(df, function(x) {
+          if (inherits(x, "Date"))        format(x, "%Y-%m-%d")
+          else if (inherits(x, "POSIXt")) format(x, "%Y-%m-%d %H:%M:%S")
+          else as.character(x)
+        })
+        df
+      }
+      
+      # pull from your reactives
+      marine_df_detail      <- as.data.frame(filtered_data_detail(),               stringsAsFactors = FALSE, check.names = FALSE)
+      marine_df             <- as.data.frame(filtered_data(),                      stringsAsFactors = FALSE, check.names = FALSE)
+      aquac_df              <- as.data.frame(aquaculture_summary(),                stringsAsFactors = FALSE, check.names = FALSE)
+      fishing_df            <- as.data.frame(fishing_products(),                   stringsAsFactors = FALSE, check.names = FALSE)
+      rice_field_df         <- as.data.frame(fishing_products_rice_field(),        stringsAsFactors = FALSE, check.names = FALSE)
+      fishery_domain_df     <- as.data.frame(fishing_products_fishery_domain(),    stringsAsFactors = FALSE, check.names = FALSE)
+      fishing_dai_df        <- as.data.frame(fishing_products_dai(),               stringsAsFactors = FALSE, check.names = FALSE)
+      law_enforcement_df    <- as.data.frame(law_enforcement(),                    stringsAsFactors = FALSE, check.names = FALSE)
+      aquaculture_pond_df   <- as.data.frame(aquaculture_pond(),                   stringsAsFactors = FALSE, check.names = FALSE)
+      aquac_df_detail       <- as.data.frame(aquaculture_summary_detail(),         stringsAsFactors = FALSE, check.names = FALSE)
+      
+      # coerce types to character for Excel writing
+      marine_df_detail    <- to_chr(marine_df_detail)
+      marine_df           <- to_chr(marine_df)
+      aquac_df            <- to_chr(aquac_df)
+      fishing_df          <- to_chr(fishing_df)
+      rice_field_df       <- to_chr(rice_field_df)
+      fishery_domain_df   <- to_chr(fishery_domain_df)
+      fishing_dai_df      <- to_chr(fishing_dai_df)
+      law_enforcement_df  <- to_chr(law_enforcement_df)
+      aquaculture_pond_df <- to_chr(aquaculture_pond_df)
+      aquac_df_detail     <- to_chr(aquac_df_detail)
+      
+      # ensure required columns for the ponds sheet
+      for (nm in c("province_kh", "ponds", "batches", "plastic soung")) {
+        if (!nm %in% names(aquaculture_pond_df)) aquaculture_pond_df[[nm]] <- ""
+      }
+      
+      # ------- TEMPLATE + WRITE -------
+      # Put your template inside the app folder (ideally under 'www/') and point here:
+      template_path <- "Report/Fish_Annual_Tamplate.xlsx"   # or "www/Fish_Annual_Template.xlsx"
+      if (!file.exists(template_path)) stop("Template not found: ", template_path)
+      
+      wb <- openxlsx2::wb_load(template_path)
+      
+      wb$add_data(sheet = "T06Detail",               x = marine_df_detail,   startRow = 8, startCol = 2, colNames = TRUE)
+      wb$add_data(sheet = "T06_ប្រភេទត្រីសមុទ្រ",      x = marine_df,          startRow = 8, startCol = 2, colNames = TRUE)
+      wb$add_data(sheet = "T07_ផលវារីវប្បកម្ម",        x = aquac_df,           startRow = 7, startCol = 2, colNames = TRUE)
+      wb$add_data(sheet = "T07Detail",               x = aquac_df_detail,    startRow = 7, startCol = 2, colNames = TRUE)
+      
+      # T05 (columns B..C and E)
+      wb$add_data(sheet = "T05_ផលនេសាទសមុទ្រ", x = fishing_df[, 1:2, drop = FALSE], startRow = 8, startCol = 2, colNames = FALSE)
+      wb$add_data(sheet = "T05_ផលនេសាទសមុទ្រ", x = fishing_df[, 3,   drop = FALSE], startRow = 8, startCol = 5, colNames = FALSE)
+      
+      # T04 (columns B..C and E)
+      wb$add_data(sheet = "T04_ផលក្នុងវាលស្រែ", x = rice_field_df[, 1:2, drop = FALSE], startRow = 10, startCol = 2, colNames = FALSE)
+      wb$add_data(sheet = "T04_ផលក្នុងវាលស្រែ", x = rice_field_df[, 3,   drop = FALSE], startRow = 10, startCol = 5, colNames = FALSE)
+      
+      # T03 (columns B..C and E)
+      wb$add_data(sheet = "T03_ផលក្នុងដែននេសាទ", x = fishery_domain_df[, 1:2, drop = FALSE], startRow = 9, startCol = 2, colNames = FALSE)
+      wb$add_data(sheet = "T03_ផលក្នុងដែននេសាទ", x = fishery_domain_df[, 3,   drop = FALSE], startRow = 9, startCol = 5, colNames = FALSE)
+      
+      # T02 (columns B..C and E)
+      wb$add_data(sheet = "T02_ផលឧបករណ៍ដាយ", x = fishing_dai_df[, 1:2, drop = FALSE], startRow = 11, startCol = 2, colNames = FALSE)
+      wb$add_data(sheet = "T02_ផលឧបករណ៍ដាយ", x = fishing_dai_df[, 3,   drop = FALSE], startRow = 11, startCol = 5, colNames = FALSE)
+      
+      # T08 (columns B..E)
+      wb$add_data(sheet = "T08_បទល្មើស", x = law_enforcement_df[, 1:4, drop = FALSE], startRow = 6, startCol = 2, colNames = TRUE)
+      
+      # T10 ponds/cages (B, E, I, M)
+      wb$add_data(sheet = "T10_ស្រះ បែ ស៊ង", x = aquaculture_pond_df[, "province_kh",  drop = FALSE], startRow = 8, startCol = 2,  colNames = FALSE)
+      wb$add_data(sheet = "T10_ស្រះ បែ ស៊ង", x = aquaculture_pond_df[, "ponds",        drop = FALSE], startRow = 8, startCol = 5,  colNames = FALSE)
+      wb$add_data(sheet = "T10_ស្រះ បែ ស៊ង", x = aquaculture_pond_df[, "batches",      drop = FALSE], startRow = 8, startCol = 9,  colNames = FALSE)
+      wb$add_data(sheet = "T10_ស្រះ បែ ស៊ង", x = aquaculture_pond_df[, "plastic soung",drop = FALSE], startRow = 8, startCol = 13, colNames = FALSE)
+      
+      # Save directly to the temp 'file' path that Shiny serves to the browser
+      openxlsx2::wb_save(wb, file, overwrite = TRUE)
+    },
+    contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  )
   
   
 

@@ -231,8 +231,13 @@ ui <- fluidPage(
     br(), 
     
     h4("Download Reports"),
-    actionButton("updateFileButton", "Download Combined Excel", class = "btn-success"),
+    downloadButton("downloadReport", "Download Combined Excel", class = "btn-success"),
+    # actionButton("updateFileButton", "Download Combined Excel", class = "btn-success"),
     br(),
+    
+    # replace the old actionButton with a downloadButton
+    
+    
   ),
   
   # --- Main Content Area ---
