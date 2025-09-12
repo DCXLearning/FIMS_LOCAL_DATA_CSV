@@ -1,4 +1,7 @@
 source("utils/helpers.R")
+source("utils/download_excel.R")
+source("utils/download_reports.R")
+
 server <- function(input, output, session) {
   
 
@@ -9,6 +12,549 @@ server <- function(input, output, session) {
     Q3 = c("7","8","9"), Q4 = c("10","11","12")
   )
   
+  
+  filtered_nat_data <- reactive({
+    df <- nat_raw
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df <- df %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+      if (input$Province_Group == "Inland") {
+        # Inland group MUST NOT show marine area rows
+        df <- df %>% dplyr::filter(as.character(area_code_nat) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+      }
+      # For Marine group we do NOT restrict area (both inland & marine allowed)
+    }
+    if (!is.null(input$year) && input$year != "All") {
+      df <- df %>% dplyr::filter(Year == suppressWarnings(as.integer(input$year)))
+    }
+    # if (input$year != "All") { df <- df %>% filter(Year == as.numeric(input$year)) }
+    # if (input$quarter != "All") { df <- df %>% filter(Quarter == input$quarter) }
+    if (!is.null(input$quarter) && input$quarter != "All") {
+      df <- df %>% dplyr::filter(Quarter == input$quarter)
+    }
+    
+    # if (!is.null(input$month) && input$month != "All") {
+    #   df <- df %>% dplyr::filter(month == suppressWarnings(as.integer(input$month)))
+    # }
+    
+    if (!is.null(input$month) && input$month != "All") {
+      df <- df %>% dplyr::filter(as.numeric(unlist(.data$Month)) == suppressWarnings(as.integer(input$month)))
+    }
+    if (!is.null(input$province) && input$province != "All") {
+      df <- df %>% dplyr::filter(province_kh == input$province)
+    }
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df <- df %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
+    }
+    df
+  })
+  
+  # filtered_aqu_data <- reactive({
+  #   df <- aqu_raw
+  #   # if (input$year != "All") { df <- df %>% filter(Year == as.numeric(input$year)) }
+  #   # if (input$province != "All") { df <- df %>% filter(province_kh == input$province) }
+  #   if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+  #     df <- df %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+  #     if (input$Province_Group == "Inland") {
+  #       # Inland group MUST NOT show marine area rows
+  #       df <- df %>% dplyr::filter(as.character(area_code_nat) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+  #     }
+  #     # For Marine group we do NOT restrict area (both inland & marine allowed)
+  #   }
+  #   if (!is.null(input$year) && input$year != "All") {
+  #     df <- df %>% dplyr::filter(Year == suppressWarnings(as.integer(input$year)))
+  #   }
+  #   # if (input$year != "All") { df <- df %>% filter(Year == as.numeric(input$year)) }
+  #   # if (input$quarter != "All") { df <- df %>% filter(Quarter == input$quarter) }
+  #   if (!is.null(input$quarter) && input$quarter != "All") {
+  #     df <- df %>% dplyr::filter(Quarter == input$quarter)
+  #   }
+  #   
+  #   # if (!is.null(input$month) && input$month != "All") {
+  #   #   df <- df %>% dplyr::filter(month == suppressWarnings(as.integer(input$month)))
+  #   # }
+  #   
+  #   if (!is.null(input$month) && input$month != "All") {
+  #     df <- df %>% dplyr::filter(as.numeric(unlist(.data$Month)) == suppressWarnings(as.integer(input$month)))
+  #   }
+  #   if (!is.null(input$province) && input$province != "All") {
+  #     df <- df %>% dplyr::filter(province_kh == input$province)
+  #   }
+  #   if (!is.null(input$area_en) && input$area_en != "All") {
+  #     df <- df %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
+  #   }
+  #   df
+  # })
+  
+  filtered_aqu_table_data <- reactive({
+    df <- aqu_raw
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df <- df %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+      if (input$Province_Group == "Inland") {
+        # Inland group MUST NOT show marine area rows
+        df <- df %>% dplyr::filter(as.character(area_code_aqu) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+      }
+      # For Marine group we do NOT restrict area (both inland & marine allowed)
+    }
+    if (!is.null(input$year) && input$year != "All") {
+      df <- df %>% dplyr::filter(Year == suppressWarnings(as.integer(input$year)))
+    }
+    # if (input$year != "All") { df <- df %>% filter(Year == as.numeric(input$year)) }
+    # if (input$quarter != "All") { df <- df %>% filter(Quarter == input$quarter) }
+    if (!is.null(input$quarter) && input$quarter != "All") {
+      df <- df %>% dplyr::filter(Quarter == input$quarter)
+    }
+    
+    # if (!is.null(input$month) && input$month != "All") {
+    #   df <- df %>% dplyr::filter(month == suppressWarnings(as.integer(input$month)))
+    # }
+    
+    if (!is.null(input$month) && input$month != "All") {
+      df <- df %>% dplyr::filter(as.numeric(unlist(.data$Month)) == suppressWarnings(as.integer(input$month)))
+    }
+    if (!is.null(input$province) && input$province != "All") {
+      df <- df %>% dplyr::filter(province_kh == input$province)
+    }
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df <- df %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
+    }
+    # if (input$year != "All") { df <- df %>% filter(Year == as.numeric(input$year)) }
+    # if (input$quarter != "All") { df <- df %>% filter(Quarter == input$quarter) }
+    # if (input$province != "All") { df <- df %>% filter(province_kh == input$province) }
+    df
+  })
+  
+  filtered_processing_data <- reactive({
+    df <- processing_raw
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df <- df %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+      if (input$Province_Group == "Inland") {
+        # Inland group MUST NOT show marine area rows
+        df <- df %>% dplyr::filter(as.character(area_code_pro) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+      }
+      # For Marine group we do NOT restrict area (both inland & marine allowed)
+    }
+    if (!is.null(input$year) && input$year != "All") {
+      df <- df %>% dplyr::filter(Year == suppressWarnings(as.integer(input$year)))
+    }
+    # if (input$year != "All") { df <- df %>% filter(Year == as.numeric(input$year)) }
+    # if (input$quarter != "All") { df <- df %>% filter(Quarter == input$quarter) }
+    if (!is.null(input$quarter) && input$quarter != "All") {
+      df <- df %>% dplyr::filter(Quarter == input$quarter)
+    }
+    
+    # if (!is.null(input$month) && input$month != "All") {
+    #   df <- df %>% dplyr::filter(month == suppressWarnings(as.integer(input$month)))
+    # }
+    
+    if (!is.null(input$month) && input$month != "All") {
+      df <- df %>% dplyr::filter(as.numeric(unlist(.data$Month)) == suppressWarnings(as.integer(input$month)))
+    }
+    if (!is.null(input$province) && input$province != "All") {
+      df <- df %>% dplyr::filter(province_kh == input$province)
+    }
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df <- df %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
+    }
+    if (input$processing_source_filter != "All") {
+      df <- df %>% filter(processing_source == input$processing_source_filter)
+    }
+    df
+  })
+  
+  filtered_reports_data <- reactive({
+    df <- reports_raw
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df <- df %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+    }
+    if (!is.null(input$year) && input$year != "All") {
+      df <- df %>% dplyr::filter(Year == suppressWarnings(as.integer(input$year)))
+    }
+    # if (input$year != "All") { df <- df %>% filter(Year == as.numeric(input$year)) }
+    # if (input$quarter != "All") { df <- df %>% filter(Quarter == input$quarter) }
+    if (!is.null(input$quarter) && input$quarter != "All") {
+      df <- df %>% dplyr::filter(Quarter == input$quarter)
+    }
+    
+    # if (!is.null(input$month) && input$month != "All") {
+    #   df <- df %>% dplyr::filter(month == suppressWarnings(as.integer(input$month)))
+    # }
+    
+    if (!is.null(input$month) && input$month != "All") {
+      df <- df %>% dplyr::filter(as.numeric(unlist(.data$Month)) == suppressWarnings(as.integer(input$month)))
+    }
+    if (!is.null(input$province) && input$province != "All") {
+      df <- df %>% dplyr::filter(province_kh == input$province)
+    }
+    # if (!is.null(input$area_en) && input$area_en != "All") {
+    #   df <- df %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
+    # }
+    df
+  })
+  
+  filtered_summary_data <- reactive({
+    df <- all_fish_data_raw
+    
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df <- df %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+      if (input$Province_Group == "Inland") {
+        # Inland group MUST NOT show marine area rows
+        df <- df %>% dplyr::filter(as.character(area_code_nat) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+      }
+      # For Marine group we do NOT restrict area (both inland & marine allowed)
+    }
+    if (!is.null(input$month) && input$month != "All") {
+      df <- df %>% dplyr::filter(as.numeric(unlist(.data$Month)) == suppressWarnings(as.integer(input$month)))
+    }
+    
+    if (!is.null(input$year) && input$year != "All") {
+      df <- df %>% dplyr::filter(Year == suppressWarnings(as.integer(input$year)))
+    }
+    # if (input$year != "All") { df <- df %>% filter(Year == as.numeric(input$year)) }
+    # if (input$quarter != "All") { df <- df %>% filter(Quarter == input$quarter) }
+    if (!is.null(input$quarter) && input$quarter != "All") {
+      df <- df %>% dplyr::filter(Quarter == input$quarter)
+    }
+    if (!is.null(input$province) && input$province != "All") {
+      df <- df %>% dplyr::filter(province_kh == input$province)
+    }
+    # if (input$area != "All") { df <- df %>% filter(area_group == "Aquaculture" | area_en == input$area) }
+    
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df <- df %>%
+        dplyr::filter(as.character(area_en) == as.character(input$area_en) | area_group == "Aquaculture")
+    }
+    
+    summary_categories <- df %>%
+      filter(area_group %in% c("Freshwater Capture", "Marine Capture", "Aquaculture")) %>%
+      group_by(Year, area_group) %>%
+      summarise(catch = sum(catch, na.rm = TRUE), .groups = "drop")
+    
+    total_production <- df %>%
+      group_by(Year) %>%
+      summarise(catch = sum(catch, na.rm = TRUE), .groups = "drop") %>%
+      mutate(area_group = "Total production")
+    
+    plot_data <- bind_rows(summary_categories, total_production) %>%
+      complete(Year, area_group, fill = list(catch = 0))
+    
+    plot_data$area_group <- factor(plot_data$area_group,
+                                   levels = c("Freshwater Capture", "Marine Capture", "Aquaculture", "Total production"))
+    plot_data
+  })
+  
+  # --- OUTPUTS (Tables and Plots) ---
+  
+  output$natPivotTable <- renderDT({
+    df <- filtered_nat_data()
+    nat_summary_df <- df %>%
+      filter(natfishcatch_typefishing != "3")
+    if (nrow(nat_summary_df) == 0) {
+      return(datatable(data.frame(
+        `Khmer Name` = character(), `English Name` = character(), Q1 = numeric(), Q2 = numeric(), Q3 = numeric(), Q4 = numeric(),
+        `Total Catch` = numeric(), `Contribution (%)` = numeric()
+      ), options = list(dom = 't'), rownames = FALSE))
+    }
+    nat_summary <- nat_summary_df %>%
+      group_by(fish_name_kh, fish_name_en, Quarter) %>%
+      summarise(Total = sum(catch, na.rm = TRUE), .groups = "drop") %>%
+      pivot_wider(names_from = Quarter, values_from = Total, values_fill = 0)
+    for (q in c("Q1", "Q2", "Q3", "Q4")) {
+      if (!q %in% names(nat_summary)) {
+        nat_summary[[q]] <- 0
+      }
+    }
+    total_catch <- sum(nat_summary[c("Q1", "Q2", "Q3", "Q4")], na.rm = TRUE)
+    nat_summary <- nat_summary %>%
+      mutate(Total_Catch = Q1 + Q2 + Q3 + Q4) %>%
+      mutate(`Contribution (%)` = if(total_catch > 0) round((Total_Catch / total_catch) * 100, 2) else 0) %>%
+      arrange(desc(Total_Catch))
+    grand_total_row <- tibble(
+      fish_name_kh = "Grand Total", fish_name_en = "",
+      Q1 = sum(nat_summary$Q1), Q2 = sum(nat_summary$Q2),
+      Q3 = sum(nat_summary$Q3), Q4 = sum(nat_summary$Q4),
+      Total_Catch = total_catch, `Contribution (%)` = 100.00
+    )
+    final_table <- bind_rows(nat_summary, grand_total_row) %>%
+      rename(`Khmer Name` = fish_name_kh, `English Name` = fish_name_en)
+    datatable(final_table,
+              options = list(pageLength = if (input$show_all) 1000 else 10, scrollX = TRUE, dom = 't'),
+              rownames = FALSE
+    ) %>% formatRound(c("Q1","Q2","Q3","Q4", "Total_Catch"), 0) %>% formatRound('Contribution (%)', 2)
+  })
+  
+  output$riceFieldTable <- renderDT({
+    df <- filtered_nat_data() %>% filter(natfishcatch_typefishing == "3")
+    if (nrow(df) == 0) {
+      return(datatable(data.frame(
+        `Khmer Name`=character(), `English Name`=character(), Q1=numeric(), Q2=numeric(), Q3=numeric(), Q4=numeric(),
+        Total=numeric(), `Contribution (%)`=numeric()
+      ), options = list(dom = 't'), rownames = FALSE))
+    }
+    summary_df <- df %>%
+      group_by(fish_name_kh, fish_name_en, Quarter) %>%
+      summarise(Quarter_Total = sum(catch, na.rm = TRUE), .groups = "drop") %>%
+      pivot_wider(names_from = Quarter, values_from = Quarter_Total, values_fill = 0)
+    for (q in c("Q1", "Q2", "Q3", "Q4")) {
+      if (!q %in% names(summary_df)) {
+        summary_df[[q]] <- 0
+      }
+    }
+    total_production <- sum(summary_df[c("Q1", "Q2", "Q3", "Q4")], na.rm = TRUE)
+    summary_df <- summary_df %>%
+      mutate(Total = Q1 + Q2 + Q3 + Q4) %>%
+      mutate(`Contribution (%)` = if(total_production > 0) round((Total / total_production) * 100, 2) else 0) %>%
+      arrange(desc(Total))
+    grand_total_row <- tibble(
+      fish_name_kh = "Grand Total", fish_name_en = "",
+      Q1 = sum(summary_df$Q1), Q2 = sum(summary_df$Q2),
+      Q3 = sum(summary_df$Q3), Q4 = sum(summary_df$Q4),
+      Total = total_production, `Contribution (%)` = 100.00
+    )
+    final_table <- bind_rows(summary_df, grand_total_row) %>%
+      rename(`Khmer Name` = fish_name_kh, `English Name` = fish_name_en)
+    datatable(final_table,
+              options = list(pageLength = if(input$show_all) 1000 else 10, dom = 't', scrollX = TRUE),
+              rownames = FALSE) %>%
+      formatRound(c("Q1", "Q2", "Q3", "Q4", "Total"), 0) %>%
+      formatRound("Contribution (%)", 2)
+  })
+  
+  output$riceFieldProvinceTable <- renderDT({
+    df <- filtered_nat_data() %>% filter(natfishcatch_typefishing == "3")
+    if (nrow(df) == 0) {
+      return(datatable(data.frame(
+        `Province (Khmer)` = character(), `Province (English)` = character(), `Production (MT)` = numeric(), `Contribution (%)` = numeric()
+      ), options = list(dom = 't'), rownames = FALSE))
+    }
+    summary_df <- df %>%
+      group_by(province_kh, province_en) %>%
+      summarise(`Production (MT)` = sum(catch, na.rm = TRUE), .groups = "drop")
+    total_rice_catch <- sum(summary_df$`Production (MT)`, na.rm = TRUE)
+    summary_df <- summary_df %>%
+      mutate(`Contribution (%)` = if(total_rice_catch > 0) round((`Production (MT)` / total_rice_catch) * 100, 2) else 0) %>%
+      arrange(desc(`Production (MT)`))
+    grand_total_row <- tibble(
+      province_kh = "Grand Total", province_en = "",
+      `Production (MT)` = total_rice_catch, `Contribution (%)` = 100.00
+    )
+    summary_df <- bind_rows(summary_df, grand_total_row) %>%
+      rename(`Province (Khmer)` = province_kh, `Province (English)` = province_en)
+    datatable(summary_df,
+              options = list(pageLength = if (input$show_all) 1000 else 10, scrollX = TRUE, dom = 't'),
+              rownames = TRUE) %>%
+      formatRound("Production (MT)", 0) %>%
+      formatRound("Contribution (%)", 2)
+  })
+  
+  output$processingTable <- renderDT({
+    df <- filtered_processing_data()
+    if (nrow(df) == 0) {
+      return(datatable(data.frame(
+        `Khmer Name` = character(), `English Name` = character(), Q1=numeric(), Q2=numeric(), Q3=numeric(), Q4=numeric(),
+        Total=numeric(), `Contribution (%)`=numeric()
+      ), options = list(dom = 't'), rownames = FALSE))
+    }
+    df_converted <- df %>%
+      mutate(
+        processing_amount = case_when(
+          processing_typeprocessing %in% c("11", "26") ~ processing_amount / 1000,
+          TRUE ~ processing_amount
+        ),
+        proc_name_kh = case_when(
+          processing_typeprocessing %in% c("11", "26") ~ paste0(proc_name_kh, " (ជាតោន)"),
+          TRUE ~ proc_name_kh
+        ),
+        proc_name_en = case_when(
+          processing_typeprocessing %in% c("11", "26") ~ paste0(proc_name_en, " (tons)"),
+          TRUE ~ proc_name_en
+        )
+      )
+    normal_df <- df_converted %>% filter(!processing_typeprocessing %in% c("11", "26"))
+    special_df <- df_converted %>% filter(processing_typeprocessing %in% c("11", "26"))
+    top_15_normal <- tibble()
+    total_normal_production <- 0
+    if(nrow(normal_df) > 0) {
+      normal_summary <- normal_df %>%
+        group_by(proc_name_kh, proc_name_en, Quarter) %>%
+        summarise(Quarter_Total = sum(processing_amount, na.rm = TRUE), .groups = "drop") %>%
+        pivot_wider(names_from = Quarter, values_from = Quarter_Total, values_fill = 0)
+      for (q in c("Q1", "Q2", "Q3", "Q4")) {
+        if (!q %in% names(normal_summary)) {
+          normal_summary[[q]] <- 0
+        }
+      }
+      top_15_normal <- normal_summary %>%
+        mutate(Total = Q1 + Q2 + Q3 + Q4) %>%
+        arrange(desc(Total)) %>%
+        slice_head(n = 15)
+      total_normal_production <- sum(top_15_normal$Total, na.rm = TRUE)
+      top_15_normal <- top_15_normal %>%
+        mutate(`Contribution (%)` = if(total_normal_production > 0) round((Total / total_normal_production) * 100, 2) else 0)
+    }
+    special_summary <- tibble()
+    if (nrow(special_df) > 0) {
+      special_summary <- special_df %>%
+        group_by(proc_name_kh, proc_name_en, Quarter) %>%
+        summarise(Quarter_Total = sum(processing_amount, na.rm = TRUE), .groups = "drop") %>%
+        pivot_wider(names_from = Quarter, values_from = Quarter_Total, values_fill = 0)
+      for (q in c("Q1", "Q2", "Q3", "Q4")) {
+        if (!q %in% names(special_summary)) {
+          special_summary[[q]] <- 0
+        }
+      }
+      special_summary <- special_summary %>%
+        mutate(Total = Q1 + Q2 + Q3 + Q4, `Contribution (%)` = 0)
+    }
+    grand_total_row <- tibble(
+      proc_name_kh = "Grand Total", proc_name_en = "",
+      Q1 = sum(top_15_normal$Q1, na.rm = TRUE),
+      Q2 = sum(top_15_normal$Q2, na.rm = TRUE),
+      Q3 = sum(top_15_normal$Q3, na.rm = TRUE),
+      Q4 = sum(top_15_normal$Q4, na.rm = TRUE),
+      Total = total_normal_production,
+      `Contribution (%)` = 100.00
+    )
+    final_table <- bind_rows(top_15_normal, grand_total_row, special_summary) %>%
+      rename(`Khmer Name` = proc_name_kh, `English Name` = proc_name_en)
+    datatable(final_table,
+              options = list(pageLength = if(input$show_all) 1000 else 25, dom = 't', scrollX = TRUE),
+              rownames = FALSE) %>%
+      formatRound(c("Q1", "Q2", "Q3", "Q4", "Total"), 2) %>%
+      formatRound("Contribution (%)", 2)
+  })
+  
+  output$provinceProductionTable <- renderDT({
+    df <- filtered_nat_data() %>% filter(natfishcatch_typefishing != "3")
+    if (nrow(df) == 0) {
+      return(datatable(data.frame(
+        `Province (Khmer)`=character(), `Province (English)`=character(), `Total Catch` = numeric(), `Contribution (%)` = numeric()
+      ), options = list(dom = 't'), rownames = FALSE))
+    }
+    summary_df <- df %>%
+      group_by(province_kh, province_en) %>%
+      summarise(`Total Catch` = sum(catch, na.rm = TRUE), .groups = "drop")
+    total_catch <- sum(summary_df$`Total Catch`, na.rm = TRUE)
+    summary_df <- summary_df %>%
+      mutate(`Contribution (%)` = if(total_catch > 0) round((`Total Catch` / total_catch) * 100, 2) else 0) %>%
+      arrange(desc(`Total Catch`))
+    grand_total_row <- tibble(
+      province_kh = "Grand Total", province_en = "",
+      `Total Catch` = total_catch, `Contribution (%)` = 100.00
+    )
+    summary_df <- bind_rows(summary_df, grand_total_row) %>%
+      rename(`Province (Khmer)` = province_kh, `Province (English)` = province_en)
+    datatable(summary_df,
+              options = list(pageLength = if (input$show_all) 1000 else 10, scrollX = TRUE, dom = 't'),
+              rownames = FALSE) %>%
+      formatRound("Total Catch", 0) %>%
+      formatRound("Contribution (%)", 2)
+  })
+  
+  # Aquaculture Production by Province table
+  output$aquaProvinceProductionTable <- renderDT({
+    df <- filtered_aqu_table_data()
+    if (nrow(df) == 0) {
+      return(datatable(data.frame(
+        `Province (Khmer)` = character(), `Province (English)` = character(), `Total Aquaculture Production (MT)` = numeric(), `Contribution (%)` = numeric()
+      ), options = list(dom = 't'), rownames = FALSE))
+    }
+    
+    summary_df <- df %>%
+      group_by(province_kh, province_en) %>%
+      summarise(`Total Aquaculture Production (MT)` = sum(catch, na.rm = TRUE), .groups = "drop")
+    
+    total_aqu_production <- sum(summary_df$`Total Aquaculture Production (MT)`, na.rm = TRUE)
+    summary_df <- summary_df %>%
+      mutate(`Contribution (%)` = if (total_aqu_production > 0) round((`Total Aquaculture Production (MT)` / total_aqu_production) * 100, 2) else 0) %>%
+      arrange(desc(`Total Aquaculture Production (MT)`))
+    
+    grand_total_row <- tibble(
+      province_kh = "Grand Total", province_en = "",
+      `Total Aquaculture Production (MT)` = total_aqu_production, `Contribution (%)` = 100.00
+    )
+    
+    final_table <- bind_rows(summary_df, grand_total_row) %>%
+      rename(`Province (Khmer)` = province_kh, `Province (English)` = province_en)
+    
+    datatable(final_table,
+              options = list(pageLength = if (input$show_all) 1000 else 10, scrollX = TRUE, dom = 't'),
+              rownames = FALSE) %>%
+      formatRound("Total Aquaculture Production (MT)", 0) %>%
+      formatRound("Contribution (%)", 2)
+  })
+  
+  
+  output$reportStatusTable <- renderDT({
+    df <- filtered_reports_data()
+    
+    if(nrow(df) == 0){
+      return(datatable(data.frame(Province=character(), Jan=numeric(), Feb=numeric(), Mar=numeric(), Apr=numeric(), May=numeric(), Jun=numeric(), Jul=numeric(), Aug=numeric(), Sep=numeric(), Oct=numeric(), Nov=numeric(), Dec=numeric(), Months=numeric()), options = list(dom='t'), rownames=FALSE))
+    }
+    
+    monthly_counts <- df %>%
+      group_by(province_en, MonthAbbr) %>%
+      summarise(n = n(), .groups = 'drop') %>%
+      pivot_wider(names_from = MonthAbbr, values_from = n, values_fill = 0)
+    
+    all_months <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    for(m in all_months){
+      if(!m %in% names(monthly_counts)){
+        monthly_counts[[m]] <- 0
+      }
+    }
+    
+    monthly_counts <- monthly_counts %>%
+      select(province_en, all_of(all_months)) %>%
+      mutate(Months = rowSums(across(all_of(all_months), ~ . > 0))) %>%
+      rename(Province = province_en) %>%
+      arrange(Province)
+    
+    provinces_submitting <- monthly_counts %>%
+      summarise(across(all_of(all_months), ~ sum(. > 0, na.rm = TRUE))) %>%
+      mutate(Province = "Provinces Submitting",
+             Months = NA)
+    
+    final_table <- bind_rows(monthly_counts, provinces_submitting)
+    
+    datatable(final_table,
+              options = list(pageLength = if(input$show_all) 50 else 25, scrollX = TRUE, dom = 't', ordering=FALSE),
+              rownames = FALSE)
+  })
+  
+  
+  # Converted plot outputs to reactive expressions for download functionality
+  summaryProductionChart <- reactive({
+    plot_data <- filtered_summary_data()
+    if (nrow(plot_data) == 0 || sum(plot_data$catch, na.rm = TRUE) == 0) {
+      return(ggplot() + annotate("text", x = 0.5, y = 0.5, label = "No production data available for the selected filters.") + theme_void())
+    }
+    valid_years <- unique(plot_data$Year)
+    title_text <- if (length(valid_years) > 0) {
+      paste0("Fisheries and Aquaculture Production (", min(valid_years), "–", max(valid_years), ")")
+    } else { "Fisheries and Aquaculture Production" }
+    custom_colors <- c(
+      "Freshwater Capture" = "#4A78D0", "Marine Capture" = "#E76F51",
+      "Aquaculture" = "#808080", "Total production" = "#FFC107"
+    )
+    ggplot(plot_data, aes(x = factor(Year), y = catch, fill = area_group)) +
+      geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+      geom_text(aes(label = format(catch, big.mark = ",")),
+                position = position_dodge(width = 0.8), vjust = -0.5, size = 3) +
+      scale_fill_manual(values = custom_colors) +
+      labs(title = title_text, x = "Year", y = "Catch (MT)", fill = NULL) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        axis.text.x = element_text(angle = 0, hjust = 0.5),
+        legend.position = "bottom", axis.line.x = element_line(colour = "black"),
+        panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank()
+      )
+  })
+  
+  # Render the reactive plot for display in the app
+  output$summaryProductionChart <- renderPlot({
+    summaryProductionChart()
+  })
   filtered_data <- reactive({
     req(nat_raw)
     
@@ -1368,6 +1914,30 @@ server <- function(input, output, session) {
   #   })
   # })
   
+  download_word_report(
+    input, output,
+    filtered_reports_data,
+    filtered_nat_data,
+    filtered_aqu_table_data,
+    filtered_processing_data,
+    filtered_summary_data,
+    summaryProductionChart,
+    aquaProductionChart,
+    # filtered_aqu_data
+  )
+  
+  download_excel_report(
+    input, output,
+    filtered_reports_data,
+    filtered_nat_data,
+    filtered_aqu_table_data,
+    filtered_processing_data,
+    filtered_summary_data,
+    summaryProductionChart,
+    aquaProductionChart,
+    # filtered_aqu_data
+  )
+  
   # When Province Group changes, update Province and Area lists accordingly
   observeEvent(input$Province_Group, {
     grp <- input$Province_Group
@@ -1587,6 +2157,10 @@ server <- function(input, output, session) {
     },
     contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   )
+  
+  output$aquaProductionChart <- renderPlot({
+    aquaProductionChart()
+  })
   
   
 
